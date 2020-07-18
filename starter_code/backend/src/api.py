@@ -34,19 +34,24 @@ def drinks():
 @app.route('/drinks-detail')
 @requires_auth('get:drinks-detail')
 def drinks_detail(payload):
-    try:
         drinks_all = Drink.query.all()
-        drinks = [drink.long() for drink in drinks_all]
+        if len(drinks_all) == 0:
+            abort(404)
 
-        if query is None:
-            abort(400)
+        try:
+            drinks = [drink.long() for drink in drinks_all]
+            Fout = open("log.txt", "w")
+            Fout.write(str(drinks))
+            Fout.close()
+        except Exception:
+            abort(500)
 
         return jsonify({
             'success': True,
             'drinks': drinks
         }), 200
-    except Exception:
-        abort(404)
+
+    
 
 
 

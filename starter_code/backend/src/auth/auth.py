@@ -1,6 +1,7 @@
 import json
 from flask import request, _request_ctx_stack
 from functools import wraps
+from flask import abort
 from jose import jwt
 from urllib.request import urlopen
 
@@ -23,7 +24,8 @@ class AuthError(Exception):
 ## Auth Header
 def get_token_auth_header():
     auth = request.headers.get('Authorization', None)
-    parts = auth.split()
+    # auth = request.headers.get('Authorization', None)
+    # parts = auth.split()
 
     if not auth:
         raise AuthError({
@@ -31,6 +33,7 @@ def get_token_auth_header():
             'description': 'Authorization header is expected.'
         }, 401)
 
+    parts = auth.split()
     if parts[0].lower() != 'bearer':
         raise AuthError({
             'code': 'invalid_header',
@@ -103,15 +106,12 @@ def verify_decode_jwt(token):
                 audience=API_AUDIENCE,
                 issuer='https://' + AUTH0_DOMAIN + '/'
             )
-
             return payload
-
         except jwt.ExpiredSignatureError:
             raise AuthError({
                 'code': 'token_expired',
                 'description': 'Token expired.'
             }, 401)
-
         except jwt.JWTClaimsError:
             raise AuthError({
                 'code': 'invalid_claims',
@@ -125,7 +125,7 @@ def verify_decode_jwt(token):
     raise AuthError({
                 'code': 'invalid_header',
                 'description': 'Unable to find the appropriate key.'
-            }, 401)
+            }, 400)
 
 
 # permission: string permission (i.e. 'post:drink')
@@ -134,12 +134,8 @@ def requires_auth(permission=''):
         @wraps(f)
         def wrapper(*args, **kwargs):
             token = get_token_auth_header()
-            try:
-                payload = verify_decode_jwt(token)
-            except:
-                abort(401)
+            payload = verify_decode_jwt(token)
             check_permissions(permission, payload)
             return f(payload, *args, **kwargs)
-
         return wrapper
     return requires_auth_decorator
